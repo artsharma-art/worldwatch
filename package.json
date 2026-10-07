@@ -1,0 +1,12 @@
+{
+  "name": "worldwatch-live-conflict-monitor",
+  "version": "1.0.0",
+  "description": "Live global conflict news monitor",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}
