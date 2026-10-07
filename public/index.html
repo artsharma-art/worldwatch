@@ -1,0 +1,557 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WORLDWATCH — Live Conflict Monitor</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
+<style>
+:root {
+  --bg: #05080d;
+  --panel: #080d14;
+  --card: #0d151f;
+  --line: #1d2a38;
+  --text: #e8edf3;
+  --muted: #8293a4;
+  --cyan: #00d4ff;
+  --green: #00e676;
+  --red: #ff4545;
+  --yellow: #ffb020;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+header {
+  height: 70px;
+  padding: 0 22px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+}
+
+.logo {
+  font-size: 20px;
+  font-weight: bold;
+  letter-spacing: 2px;
+}
+
+.logo span { color: var(--cyan); }
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 9px var(--green);
+}
+
+.layout {
+  height: calc(100vh - 70px);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+}
+
+.map-area { position: relative; min-width: 0; }
+
+#map {
+  height: 100%;
+  width: 100%;
+  background: #071019;
+}
+
+.dashboard {
+  background: var(--panel);
+  border-left: 1px solid var(--line);
+  overflow-y: auto;
+}
+
+.panel {
+  padding: 17px;
+  border-bottom: 1px solid var(--line);
+}
+
+.heading {
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 1.5px;
+  margin-bottom: 14px;
+  text-transform: uppercase;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.stat {
+  padding: 14px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+}
+
+.number {
+  font-size: 26px;
+  font-weight: bold;
+  color: var(--cyan);
+}
+
+.label {
+  color: var(--muted);
+  font-size: 10px;
+  margin-top: 5px;
+}
+
+#lastUpdate {
+  color: var(--muted);
+  font-size: 11px;
+  margin-top: 12px;
+}
+
+input {
+  width: 100%;
+  padding: 11px;
+  color: white;
+  background: var(--card);
+  border: 1px solid #293746;
+  border-radius: 6px;
+  outline: none;
+}
+
+input:focus { border-color: var(--cyan); }
+
+button {
+  width: 100%;
+  margin-top: 12px;
+  padding: 11px;
+  background: transparent;
+  border: 1px solid var(--cyan);
+  border-radius: 6px;
+  color: var(--cyan);
+  cursor: pointer;
+  font-weight: bold;
+}
+
+button:hover { background: var(--cyan); color: #041018; }
+
+#news {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.news-card {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--card);
+}
+
+.news-card:hover { border-color: var(--cyan); }
+
+.news-card a {
+  text-decoration: none;
+  color: inherit;
+}
+
+.news-title {
+  font-size: 13px;
+  font-weight: bold;
+  line-height: 1.5;
+}
+
+.meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 9px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.message {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.warning {
+  margin-top: 12px;
+  padding: 10px;
+  border-left: 3px solid var(--yellow);
+  background: #101820;
+  color: #a4b0bc;
+  font-size: 10px;
+  line-height: 1.6;
+}
+
+.legend {
+  position: absolute;
+  bottom: 18px;
+  left: 18px;
+  z-index: 500;
+  padding: 13px;
+  background: rgba(7, 12, 18, .95);
+  border: 1px solid #293746;
+  border-radius: 7px;
+  font-size: 11px;
+}
+
+.legend-title { color: var(--muted); margin-bottom: 8px; }
+
+.legend-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 7px;
+}
+
+.legend-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+
+.leaflet-container { background: #071019; }
+
+.leaflet-control-zoom a {
+  background: #0b131c !important;
+  color: white !important;
+  border-color: #263442 !important;
+}
+
+@media (max-width: 850px) {
+  .layout { height: auto; display: block; }
+  .map-area { height: 55vh; }
+  .dashboard { border-left: none; }
+  header { padding: 0 14px; }
+  .logo { font-size: 17px; }
+}
+</style>
+</head>
+
+<body>
+<header>
+  <div class="logo">WORLD<span>WATCH</span></div>
+  <div class="status" id="status">
+    <span class="dot"></span> CONNECTING
+  </div>
+</header>
+
+<div class="layout">
+  <main class="map-area">
+    <div id="map"></div>
+
+    <div class="legend">
+      <div class="legend-title">NEWS ACTIVITY</div>
+      <div class="legend-row">
+        <span class="legend-dot" style="background:#ff4545"></span>
+        High activity
+      </div>
+      <div class="legend-row">
+        <span class="legend-dot" style="background:#ffb020"></span>
+        Medium activity
+      </div>
+      <div class="legend-row">
+        <span class="legend-dot" style="background:#00d4ff"></span>
+        Other mapped coverage
+      </div>
+    </div>
+  </main>
+
+  <aside class="dashboard">
+    <section class="panel">
+      <div class="heading">Global Overview</div>
+
+      <div class="stats">
+        <div class="stat">
+          <div class="number" id="articleCount">--</div>
+          <div class="label">NEWS REPORTS</div>
+        </div>
+
+        <div class="stat">
+          <div class="number" id="locationCount">--</div>
+          <div class="label">MAP FEATURES</div>
+        </div>
+
+        <div class="stat">
+          <div class="number" id="minutesAgo">--</div>
+          <div class="label">MINUTES SINCE FETCH</div>
+        </div>
+
+        <div class="stat">
+          <div class="number">24H</div>
+          <div class="label">NEWS WINDOW</div>
+        </div>
+      </div>
+
+      <div id="lastUpdate">Waiting for server...</div>
+
+      <button id="refresh">↻ REFRESH DATA</button>
+    </section>
+
+    <section class="panel">
+      <div class="heading">Search Reports</div>
+      <input id="search" placeholder="Search country, topic, headline...">
+    </section>
+
+    <section class="panel">
+      <div class="heading">Latest Conflict Coverage</div>
+
+      <div id="news">
+        <p class="message">Loading news from the server...</p>
+      </div>
+
+      <div class="warning">
+        Map markers represent geographic news coverage, not verified
+        live battlefield positions. Headlines can be delayed, incomplete,
+        or unverified. Check the linked original reporting for context.
+      </div>
+    </section>
+  </aside>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+const map = L.map("map", {
+  minZoom: 2,
+  maxZoom: 8
+}).setView([22, 10], 2);
+
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  attribution: "&copy; OpenStreetMap contributors"
+}).addTo(map);
+
+let articles = [];
+let markers = [];
+let lastFetched = null;
+let requestInProgress = false;
+
+const $ = id => document.getElementById(id);
+
+function safeText(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function formatDate(value) {
+  if (!value) return "Time unavailable";
+
+  const s = String(value);
+
+  if (/^\d{14}$/.test(s)) {
+    const d = new Date(
+      `${s.slice(0,4)}-${s.slice(4,6)}-${s.slice(6,8)}T` +
+      `${s.slice(8,10)}:${s.slice(10,12)}:${s.slice(12,14)}Z`
+    );
+
+    if (!Number.isNaN(d.getTime())) {
+      return d.toLocaleString();
+    }
+  }
+
+  const d = new Date(value);
+
+  return Number.isNaN(d.getTime())
+    ? safeText(value)
+    : d.toLocaleString();
+}
+
+function renderNews() {
+  const query = $("search").value.trim().toLowerCase();
+
+  const filtered = articles.filter(article => {
+    const text = [
+      article.title,
+      article.domain,
+      article.sourcecountry
+    ].join(" ").toLowerCase();
+
+    return text.includes(query);
+  });
+
+  $("articleCount").textContent = articles.length;
+
+  if (!filtered.length) {
+    $("news").innerHTML =
+      '<p class="message">No matching reports. Try another search.</p>';
+    return;
+  }
+
+  $("news").innerHTML = filtered.map(article => {
+    let url = "#";
+
+    try {
+      const parsed = new URL(article.url);
+      if (parsed.protocol === "https:" || parsed.protocol === "http:") {
+        url = parsed.href;
+      }
+    } catch {}
+
+    return `
+      <article class="news-card">
+        <a href="${safeText(url)}" target="_blank" rel="noopener noreferrer">
+          <div class="news-title">${safeText(article.title || "Untitled report")}</div>
+          <div class="meta">
+            <span>${safeText(article.domain || "News source")}</span>
+            <span>${formatDate(article.seendate)}</span>
+          </div>
+        </a>
+      </article>
+    `;
+  }).join("");
+}
+
+function renderMap(features) {
+  markers.forEach(marker => map.removeLayer(marker));
+  markers = [];
+
+  for (const feature of features) {
+    const coords = feature?.geometry?.coordinates;
+
+    if (!Array.isArray(coords) || coords.length < 2) continue;
+
+    const lng = Number(coords[0]);
+    const lat = Number(coords[1]);
+
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) continue;
+
+    const properties = feature.properties || {};
+    const count = Number(properties.count || 1);
+
+    const color = count > 20
+      ? "#ff4545"
+      : count > 8
+        ? "#ffb020"
+        : "#00d4ff";
+
+    const icon = L.divIcon({
+      className: "",
+      iconSize: [14, 14],
+      iconAnchor: [7, 7],
+      html: `<div style="
+        width:12px;height:12px;border-radius:50%;
+        background:${color};border:2px solid white;
+        box-shadow:0 0 12px ${color};
+      "></div>`
+    });
+
+    const marker = L.marker([lat, lng], { icon }).addTo(map);
+
+    marker.bindPopup(
+      "<strong>News coverage location</strong><br><br>" +
+      "Conflict-related reporting mentions this geographic area." +
+      "<br><br><small>Not a live military position.</small>"
+    );
+
+    markers.push(marker);
+  }
+
+  $("locationCount").textContent = markers.length;
+}
+
+async function loadData() {
+  if (requestInProgress) return;
+
+  requestInProgress = true;
+
+  $("status").innerHTML =
+    '<span class="dot" style="background:#ffb020"></span> UPDATING';
+
+  try {
+    const response = await fetch("/api/all", {
+      cache: "no-store"
+    });
+
+    const data = await response.json();
+
+    if (!response.ok && !data.articles?.length && !data.features?.length) {
+      throw new Error(data.error || "Server or news provider unavailable");
+    }
+
+    articles = Array.isArray(data.articles) ? data.articles : [];
+
+    renderNews();
+    renderMap(Array.isArray(data.features) ? data.features : []);
+
+    lastFetched = Date.now();
+
+    const providerDate = data.updatedAt
+      ? new Date(data.updatedAt)
+      : new Date();
+
+    $("lastUpdate").textContent =
+      "Data retrieved: " + providerDate.toLocaleTimeString();
+
+    $("minutesAgo").textContent = "0";
+
+    $("status").innerHTML =
+      '<span class="dot"></span> SERVER CONNECTED';
+
+    if (data.ok === false) {
+      $("lastUpdate").textContent +=
+        " — Some live sources are unavailable.";
+    }
+  } catch (error) {
+    console.error(error);
+
+    $("status").innerHTML =
+      '<span class="dot" style="background:#ff4545"></span> FEED ERROR';
+
+    $("lastUpdate").textContent =
+      "Could not retrieve data. Retrying automatically.";
+
+    $("news").innerHTML = `
+      <p class="message">
+        The backend or news provider is temporarily unavailable.
+        Check the Render logs if this continues.
+        <br><br>
+        Details: ${safeText(error.message)}
+      </p>`;
+  } finally {
+    requestInProgress = false;
+  }
+}
+
+$("search").addEventListener("input", renderNews);
+$("refresh").addEventListener("click", loadData);
+
+loadData();
+
+setInterval(loadData, 60000);
+
+setInterval(() => {
+  if (lastFetched !== null) {
+    $("minutesAgo").textContent =
+      Math.floor((Date.now() - lastFetched) / 60000);
+  }
+}, 10000);
+</script>
+</body>
+</html>
