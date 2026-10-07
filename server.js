@@ -206,7 +206,7 @@ app.get("/api/all", async (req, res) => {
   });
 });
 
-app.get("*", (req, res) => {
+app.use((req, res) => {
   res.sendFile("index.html", {
     root: "public"
   });
